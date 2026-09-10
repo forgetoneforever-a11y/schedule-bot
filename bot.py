@@ -89,7 +89,7 @@ async def parse_reminder(msg: types.Message):
     if len(parts) >= 3:
         try:
             date_str, time_str = parts[0], parts[1]
-            text = " ".join(parts[2:])
+text = " ".join(parts[2:])
             dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
             job_id = f"{msg.chat.id}_{date_str}_{time_str}"
             scheduler.add_job(
@@ -99,9 +99,8 @@ async def parse_reminder(msg: types.Message):
                 args=[msg.chat.id, text],
                 id=job_id,
                 replace_existing=True
-        )
-
-reminders.append({"date": date_str, "time": time_str, "text": text, "chat_id": msg.chat.id})
+            )
+            reminders.append({"date": date_str, "time": time_str, "text": text, "chat_id": msg.chat.id})
             await msg.answer(f"✅ Напоминание на {dt.strftime('%d.%m %H:%M')}: {text}")
         except ValueError:
             await msg.answer("Формат неправильный: ГГГГ-ММ-ДД ЧЧ:ММ текст")
