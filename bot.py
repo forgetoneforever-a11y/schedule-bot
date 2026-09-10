@@ -4,40 +4,39 @@ from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
 import os
 
-TOKEN = "ТВОЙ_TELEGRAM_BOT_TOKEN"
-ADMIN_CHAT_ID = "ТВОЙ_CHAT_ID"  # Куда слать уведомления
+# Получаем данные из переменных окружения Render
+TOKEN = os.getenv("TOKEN")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 app = FastAPI()
 scheduler = AsyncIOScheduler()
 
-# Временное хранилище заметок/напоминаний
 reminders = []
 
 class ReminderItem(BaseModel):
-    date: str      # YYYY-MM-DD
-    time: str      # HH:MM
+    date: str
+    time: str
     text: str
-    chat_id: int = int(ADMIN_CHAT_ID)
+    chat_id: int = int(ADMIN_CHAT_ID) if ADMIN_CHAT_ID else 0
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer(
         f"Привет! Твой Chat ID: `{message.chat.id}`.\n"
-        "Используй его для связи сайта с ботом!",
+        "Вставь его в переменную ADMIN_CHAT_ID на Render, если он отличается!",
         parse_mode="Markdown"
     )
 
 @app.post("/api/add_reminder")
 async def add_reminder(item: ReminderItem):
     reminders.append(item.dict())
-    # Планируем отправку
     job_id = f"{item.date}_{item.time}_{item.text}"
     dt = datetime.strptime(f"{item.date} {item.time}", "%Y-%m-%d %H:%M")
     
@@ -59,8 +58,8 @@ async def send_reminder_task(chat_id: int, text: str):
 
 async def main():
     scheduler.start()
-    # Запуск FastAPI для связи с сайтом и Uvicorn
-    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), log_level="info")
+    port = int(os.environ.get("PORT", 10000))
+    config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
     server = uvicorn.Server(config)
     
     await asyncio.gather(
